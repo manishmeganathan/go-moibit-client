@@ -42,7 +42,7 @@ func NewClient(signature, nonce string, opts ...ClientOption) (*Client, error) {
 	}
 
 	// Authenticate credentials
-	if err := client.authenticate(); err != nil {
+	if err := client.Authenticate(); err != nil {
 		return nil, fmt.Errorf("user could not be authenticated: %w", err)
 	}
 
@@ -54,9 +54,9 @@ func defaultClient(sig, n string) *Client {
 	return &Client{http.Client{}, "", n, sig, "", DefaultNetworkID}
 }
 
-// authenticate attempts to authenticate the Client credentials with MOIBit.
+// Authenticate attempts to authenticate the Client credentials with MOIBit.
 // Returns an error if either the authentication routine fails or if the credentials are invalid.
-func (client *Client) authenticate() error {
+func (client *Client) Authenticate() error {
 	// Create new POST request for user authentication
 	request, err := http.NewRequest("POST", urlAuthUser, nil)
 	if err != nil {
