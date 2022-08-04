@@ -24,27 +24,27 @@ func (client *Client) ReadFile(path string, version int) ([]byte, error) {
 	}
 
 	// Generate Request Object
-	request, err := http.NewRequest("POST", urlReadFile, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", urlReadFile, bytes.NewReader(requestData))
 	if err != nil {
 		return nil, fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set authentication headers from the client
-	client.setHeaders(request)
+	client.setHeaders(requestHTTP)
 
 	// Perform the HTTP Request
-	response, err := client.c.Do(request)
+	responseHTTP, err := client.c.Do(requestHTTP)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
 	// Check the status code of response
-	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("non-ok response [%v]", response.StatusCode)
+	if responseHTTP.StatusCode != 200 {
+		return nil, fmt.Errorf("non-ok response [%v]", responseHTTP.StatusCode)
 	}
 
 	// Read all bytes from the response body
-	data, err := io.ReadAll(response.Body)
+	data, err := io.ReadAll(responseHTTP.Body)
 	if err != nil {
 		return nil, fmt.Errorf("response data spool: %w", err)
 	}
@@ -66,8 +66,8 @@ type requestWriteFile struct {
 }
 
 // defaultWriteFileRequest generates a new requestWriteFile object for the given file name and data
-func defaultWriteFileRequest(data []byte, name string) requestWriteFile {
-	return requestWriteFile{
+func defaultWriteFileRequest(data []byte, name string) *requestWriteFile {
+	return &requestWriteFile{
 		FileName: name, FileText: string(data),
 		KeepPrevious: false, CreateFolders: true, IsProvenance: false,
 	}
@@ -84,40 +84,48 @@ type responseWriteFile struct {
 // Returns a []FileDescriptor (and error) containing the status of the file after successful write.
 func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) ([]FileDescriptor, error) {
 	// Generate Request Data
-	requestData, err := json.Marshal(defaultWriteFileRequest(data, name))
+	request := defaultWriteFileRequest(data, name)
+	for _, opt := range opts {
+		if err := opt(request); err != nil {
+			return nil, fmt.Errorf("request creation failed while applying options: %w", err)
+		}
+	}
+
+	// Serialize Request Data
+	requestData, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("request serialization failed: %w", err)
 	}
 
 	// Generate Request Object
-	request, err := http.NewRequest("POST", urlWriteFile, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", urlWriteFile, bytes.NewReader(requestData))
 	if err != nil {
 		return nil, fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set authentication headers from the client
-	client.setHeaders(request)
+	client.setHeaders(requestHTTP)
 
 	// Perform the HTTP Request
-	response, err := client.c.Do(request)
+	responseHTTP, err := client.c.Do(requestHTTP)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
 	// Decode the response into a responseWriteFiles
-	resp := new(responseWriteFile)
-	decoder := json.NewDecoder(response.Body)
-	if err := decoder.Decode(resp); err != nil {
-		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", response.StatusCode, err)
+	response := new(responseWriteFile)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
 	}
 
 	// Check the status code of response
-	if resp.Metadata.StatusCode != 200 {
-		return nil, fmt.Errorf("non-ok response [%v]: %v", resp.Metadata.StatusCode, resp.Metadata.Message)
+	if response.Metadata.StatusCode != 200 {
+		return nil, fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
 	}
 
 	// Returns the file descriptors from the response
-	return resp.Data, nil
+	return response.Data, nil
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface for responseWriteFile.

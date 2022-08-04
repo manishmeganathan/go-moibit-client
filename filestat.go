@@ -53,34 +53,34 @@ func (client *Client) ListFiles(path string) ([]FileDescriptor, error) {
 	}
 
 	// Generate Request Object
-	request, err := http.NewRequest("POST", urlListFiles, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", urlListFiles, bytes.NewReader(requestData))
 	if err != nil {
 		return nil, fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set authentication headers from the client
-	client.setHeaders(request)
+	client.setHeaders(requestHTTP)
 
 	// Perform the HTTP Request
-	response, err := client.c.Do(request)
+	responseHTTP, err := client.c.Do(requestHTTP)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
 	// Decode the response into a responseListFiles
-	resp := new(responseListFiles)
-	decoder := json.NewDecoder(response.Body)
-	if err := decoder.Decode(resp); err != nil {
-		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", response.StatusCode, err)
+	response := new(responseListFiles)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
 	}
 
 	// Check the status code of response
-	if resp.Metadata.StatusCode != 200 {
-		return nil, fmt.Errorf("non-ok response [%v]: %v", resp.Metadata.StatusCode, resp.Metadata.Message)
+	if response.Metadata.StatusCode != 200 {
+		return nil, fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
 	}
 
 	// Returns the file descriptors from the response
-	return resp.Data, nil
+	return response.Data, nil
 }
 
 // requestFileStatus is the request for the FileStatus API of MOIBit
@@ -105,32 +105,32 @@ func (client *Client) FileStatus(path string) (FileDescriptor, error) {
 	}
 
 	// Generate Request Object
-	request, err := http.NewRequest("POST", urlFileStatus, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", urlFileStatus, bytes.NewReader(requestData))
 	if err != nil {
 		return FileDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set authentication headers from the client
-	client.setHeaders(request)
+	client.setHeaders(requestHTTP)
 
 	// Perform the HTTP Request
-	response, err := client.c.Do(request)
+	responseHTTP, err := client.c.Do(requestHTTP)
 	if err != nil {
 		return FileDescriptor{}, fmt.Errorf("request failed: %w", err)
 	}
 
 	// Decode the response into a responseListFiles
-	resp := new(responseFileStatus)
-	decoder := json.NewDecoder(response.Body)
-	if err := decoder.Decode(resp); err != nil {
-		return FileDescriptor{}, fmt.Errorf("response decode failed [HTTP %v]: %w", response.StatusCode, err)
+	response := new(responseFileStatus)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return FileDescriptor{}, fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
 	}
 
 	// Check the status code of response
-	if resp.Metadata.StatusCode != 200 {
-		return FileDescriptor{}, fmt.Errorf("non-ok response [%v]: %v", resp.Metadata.StatusCode, resp.Metadata.Message)
+	if response.Metadata.StatusCode != 200 {
+		return FileDescriptor{}, fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
 	}
 
 	// Returns the file descriptors from the response
-	return resp.Data, nil
+	return response.Data, nil
 }
