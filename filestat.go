@@ -19,6 +19,7 @@ type FileDescriptor struct {
 	EncryptionKey string `json:"encryptionKey"`
 	LastUpdated   string `json:"lastUpdated"`
 
+	IsDirectory bool   `json:"isDir"`
 	Directory   string `json:"directory"`
 	Path        string `json:"path"`
 	NodeAddress string `json:"nodeAddress"`
@@ -27,7 +28,7 @@ type FileDescriptor struct {
 // Exists returns a boolean indicating if the
 // file exists based on if the hash is empty.
 func (file *FileDescriptor) Exists() bool {
-	return file.Hash == ""
+	return file.Hash == "" && !file.IsDirectory
 }
 
 // requestListFiles is the request for the ListFiles API of MOIBit
@@ -66,16 +67,16 @@ func (client *Client) ListFiles(path string) ([]FileDescriptor, error) {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	// Check the status code of response
-	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("non-ok response: %v", response.StatusCode)
-	}
-
 	// Decode the response into a responseListFiles
 	resp := new(responseListFiles)
 	decoder := json.NewDecoder(response.Body)
 	if err := decoder.Decode(resp); err != nil {
-		return nil, fmt.Errorf("response decode failed: %w", err)
+		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", response.StatusCode, err)
+	}
+
+	// Check the status code of response
+	if resp.Metadata.StatusCode != 200 {
+		return nil, fmt.Errorf("non-ok response [%v]: %v", resp.Metadata.StatusCode, resp.Metadata.Message)
 	}
 
 	// Returns the file descriptors from the response
@@ -118,16 +119,16 @@ func (client *Client) FileStatus(path string) (FileDescriptor, error) {
 		return FileDescriptor{}, fmt.Errorf("request failed: %w", err)
 	}
 
-	// Check the status code of response
-	if response.StatusCode != 200 {
-		return FileDescriptor{}, fmt.Errorf("non-ok response: %v", response.StatusCode)
-	}
-
 	// Decode the response into a responseListFiles
 	resp := new(responseFileStatus)
 	decoder := json.NewDecoder(response.Body)
 	if err := decoder.Decode(resp); err != nil {
-		return FileDescriptor{}, fmt.Errorf("response decode failed: %w", err)
+		return FileDescriptor{}, fmt.Errorf("response decode failed [HTTP %v]: %w", response.StatusCode, err)
+	}
+
+	// Check the status code of response
+	if resp.Metadata.StatusCode != 200 {
+		return FileDescriptor{}, fmt.Errorf("non-ok response [%v]: %v", resp.Metadata.StatusCode, resp.Metadata.Message)
 	}
 
 	// Returns the file descriptors from the response
