@@ -221,3 +221,82 @@ func ApplyEncryption(encryption EncryptionType) WriteOption {
 		return nil
 	}
 }
+
+// requestRemoveFile is the request for the Remove API of MOIBit
+type requestRemoveFile struct {
+	FilePath    string `json:"path"`
+	Version     int    `json:"version"`
+	IsDirectory bool   `json:"isdir"`
+	Operation   int    `json:"operationType"`
+}
+
+// defaultRemoveFileRequest generates a new requestRemoveFile object for the given file path and version
+func defaultRemoveFileRequest(path string, version int) *requestRemoveFile {
+	return &requestRemoveFile{
+		FilePath: path, Version: version,
+		IsDirectory: false, Operation: 0,
+	}
+}
+
+// RemoveFile removes a file at the given path of the specified version.
+// It also accepts a variadic number of RemoveOption to modify the remove request.
+// 		- To remove directories, use the path to the directory and pass the RemoveDirectory option.
+// 		- To restore files, pass the file path and version to restore with the PerformRestore option.
+func (client *Client) RemoveFile(path string, version int, opts ...RemoveOption) error {
+	// Generate Request Data
+	request := defaultRemoveFileRequest(path, version)
+	for _, opt := range opts {
+		if err := opt(request); err != nil {
+			return fmt.Errorf("request creation failed while applying options: %w", err)
+		}
+	}
+
+	// Serialize Request Data
+	requestData, err := json.Marshal(request)
+	if err != nil {
+		return fmt.Errorf("request serialization failed: %w", err)
+	}
+
+	// Generate Request Object
+	requestHTTP, err := http.NewRequest("POST", urlRemoveFile, bytes.NewReader(requestData))
+	if err != nil {
+		return fmt.Errorf("request generation failed: %w", err)
+	}
+
+	// Set authentication headers from the client
+	client.setHeaders(requestHTTP)
+
+	// Perform the HTTP Request
+	responseHTTP, err := client.c.Do(requestHTTP)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+
+	// Check the status code of response
+	if responseHTTP.StatusCode != 200 {
+		return fmt.Errorf("non-ok response [%v]", responseHTTP.StatusCode)
+	}
+
+	return nil
+}
+
+// RemoveOption is a request option for the RemoveFile method of Client.
+type RemoveOption func(*requestRemoveFile) error
+
+// RemoveDirectory returns a RemoveOption that will specify that the file to delete is a directory.
+// Note: This will cause RemoveFile to fail if it is a file and not a directory.
+func RemoveDirectory() RemoveOption {
+	return func(request *requestRemoveFile) error {
+		request.IsDirectory = true
+		return nil
+	}
+}
+
+// PerformRestore returns a RemoveOption that will set the operation mode of RemoveFile
+// to restoration, which will result in MOIBit attempting to restore the file version
+func PerformRestore() RemoveOption {
+	return func(request *requestRemoveFile) error {
+		request.Operation = 1
+		return nil
+	}
+}

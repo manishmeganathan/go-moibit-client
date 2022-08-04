@@ -17,7 +17,7 @@ const (
 	urlFileStatus = "https://api.moinet.io/moibit/v1/filestatus"
 	urlWriteFile  = "https://api.moinet.io/moibit/v1/writetexttofile"
 	urlReadFile   = "https://api.moinet.io/moibit/v1/readfile"
-	urlRemove     = "https://api.moinet.io/moibit/v1/remove"
+	urlRemoveFile = "https://api.moinet.io/moibit/v1/remove"
 )
 
 // ClientOption is a MOIBit client option provided to the Client Constructor
