@@ -105,7 +105,7 @@ func (client *Client) FileStatus(path string) (FileDescriptor, error) {
 	}
 
 	// Generate Request Object
-	request, err := http.NewRequest("POST", urlListFiles, bytes.NewReader(requestData))
+	request, err := http.NewRequest("POST", urlFileStatus, bytes.NewReader(requestData))
 	if err != nil {
 		return FileDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}

@@ -12,9 +12,32 @@ const DefaultNetworkID = "12D3KooWSMAGyrB9TG45AAWaQNJmMdfJpnLQ5e1XM21hkm3FokHk"
 
 // URLs for all MOIBit API Endpoints
 const (
-	urlAuthUser  = "https://api.moinet.io/moibit/v1/user/auth"
-	urlListFiles = "https://api.moinet.io/moibit/v1/listfiles"
+	urlAuthUser   = "https://api.moinet.io/moibit/v1/user/auth"
+	urlListFiles  = "https://api.moinet.io/moibit/v1/listfiles"
+	urlFileStatus = "https://api.moinet.io/moibit/v1/filestatus"
+	urlWriteFile  = "https://api.moinet.io/moibit/v1/writetexttofile"
+	urlReadFile   = "https://api.moinet.io/moibit/v1/readfile"
+	urlRemove     = "https://api.moinet.io/moibit/v1/remove"
 )
+
+// ClientOption is a MOIBit client option provided to the Client Constructor
+type ClientOption func(*Client) error
+
+// AppID returns ClientOption that can be used to set the App ID for a Client
+func AppID(app string) ClientOption {
+	return func(config *Client) error {
+		config.appID = app
+		return nil
+	}
+}
+
+// NetworkID returns a ClientOption that can be used to set the Network ID for a Client
+func NetworkID(net string) ClientOption {
+	return func(config *Client) error {
+		config.netID = net
+		return nil
+	}
+}
 
 // Client represents a MOIBit API Client
 type Client struct {
