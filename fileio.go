@@ -222,7 +222,7 @@ func ApplyEncryption(encryption EncryptionType) WriteOption {
 	}
 }
 
-// requestRemoveFile is the request for the Remove API of MOIBit
+// requestRemoveFile is the request for the RemoveFile API of MOIBit
 type requestRemoveFile struct {
 	FilePath    string `json:"path"`
 	Version     int    `json:"version"`
@@ -236,6 +236,12 @@ func defaultRemoveFileRequest(path string, version int) *requestRemoveFile {
 		FilePath: path, Version: version,
 		IsDirectory: false, Operation: 0,
 	}
+}
+
+// responseRemoveFile is the request for the RemoveFile API of MOIBit
+type responseRemoveFile struct {
+	Metadata responseMetadata `json:"meta"`
+	Data     string           `json:"data"`
 }
 
 // RemoveFile removes a file at the given path of the specified version.
@@ -272,9 +278,16 @@ func (client *Client) RemoveFile(path string, version int, opts ...RemoveOption)
 		return fmt.Errorf("request failed: %w", err)
 	}
 
+	// Decode the response into a responseWriteFiles
+	response := new(responseRemoveFile)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
+	}
+
 	// Check the status code of response
-	if responseHTTP.StatusCode != 200 {
-		return fmt.Errorf("non-ok response [%v]", responseHTTP.StatusCode)
+	if response.Metadata.StatusCode != 200 {
+		return fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
 	}
 
 	return nil
