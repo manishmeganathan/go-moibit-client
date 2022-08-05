@@ -12,12 +12,14 @@ const DefaultNetworkID = "12D3KooWSMAGyrB9TG45AAWaQNJmMdfJpnLQ5e1XM21hkm3FokHk"
 
 // URLs for all MOIBit API Endpoints
 const (
-	urlAuthUser   = "https://api.moinet.io/moibit/v1/user/auth"
-	urlListFiles  = "https://api.moinet.io/moibit/v1/listfiles"
-	urlFileStatus = "https://api.moinet.io/moibit/v1/filestatus"
-	urlWriteFile  = "https://api.moinet.io/moibit/v1/writetexttofile"
-	urlReadFile   = "https://api.moinet.io/moibit/v1/readfile"
-	urlRemoveFile = "https://api.moinet.io/moibit/v1/remove"
+	urlAuthUser     = "https://api.moinet.io/moibit/v1/user/auth"
+	urlListFiles    = "https://api.moinet.io/moibit/v1/listfiles"
+	urlFileStatus   = "https://api.moinet.io/moibit/v1/filestatus"
+	urlFileVersions = "https://api.moinet.io/moibit/v1/versions"
+	urlWriteFile    = "https://api.moinet.io/moibit/v1/writetexttofile"
+	urlReadFile     = "https://api.moinet.io/moibit/v1/readfile"
+	urlRemoveFile   = "https://api.moinet.io/moibit/v1/remove"
+	urlMakeDir      = "https://api.moinet.io/moibit/v1/makedir"
 )
 
 // ClientOption is a MOIBit client option provided to the Client Constructor

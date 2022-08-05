@@ -287,7 +287,7 @@ func (client *Client) RemoveFile(path string, version int, opts ...RemoveOption)
 
 	// Check the status code of response
 	if response.Metadata.StatusCode != 200 {
-		return fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
+		return fmt.Errorf("non-ok response [%v]: %v | %v", response.Metadata.StatusCode, response.Metadata.Message, response.Data)
 	}
 
 	return nil

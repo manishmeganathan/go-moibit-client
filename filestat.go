@@ -7,28 +7,37 @@ import (
 	"net/http"
 )
 
-// FileDescriptor describes the status of file
-type FileDescriptor struct {
+// FileVersionDescriptor describes the version information of file
+type FileVersionDescriptor struct {
 	Active bool `json:"active"`
 	Enable bool `json:"enable"`
 
-	Hash          string `json:"hash"`
-	Version       int    `json:"version"`
-	Replication   int    `json:"replication"`
-	FileSize      int    `json:"filesize"`
+	Hash        string `json:"hash"`
+	Version     int    `json:"version"`
+	Replication int    `json:"replication"`
+	FileSize    int    `json:"filesize"`
+
 	EncryptionKey string `json:"encryptionKey"`
 	LastUpdated   string `json:"lastUpdated"`
+}
 
+// FileDescriptor describes the status of file
+type FileDescriptor struct {
+	FileVersionDescriptor // inlined JSON
+
+	Path        string `json:"path"`
 	IsDirectory bool   `json:"isDir"`
 	Directory   string `json:"directory"`
-	Path        string `json:"path"`
 	NodeAddress string `json:"nodeAddress"`
 }
 
-// Exists returns a boolean indicating if the
-// file exists based on if the hash is empty.
-func (file *FileDescriptor) Exists() bool {
-	return file.Hash == "" && !file.IsDirectory
+// String implements the Stringer interface for FileDescriptor
+func (file FileDescriptor) String() string {
+	if file.IsDirectory {
+		return fmt.Sprintf("[Dirc] /%v", file.Directory)
+	} else {
+		return fmt.Sprintf("[File] %v%v", file.Directory, file.Path)
+	}
 }
 
 // requestListFiles is the request for the ListFiles API of MOIBit
@@ -133,4 +142,98 @@ func (client *Client) FileStatus(path string) (FileDescriptor, error) {
 
 	// Returns the file descriptors from the response
 	return response.Data, nil
+}
+
+// requestFileVersions is the request for the FileVersions API of MOIBit
+type requestFileVersions struct {
+	Path string `json:"path"`
+}
+
+// responseFileVersions is the response for the FileVersions API of MOIBit
+type responseFileVersions struct {
+	Metadata responseMetadata        `json:"meta"`
+	Data     []FileVersionDescriptor `json:"data"`
+}
+
+// FileVersions returns the version information of the file at the given path.
+// Returns a slice of FileVersionDescriptor objects, one for each version.
+func (client *Client) FileVersions(path string) ([]FileVersionDescriptor, error) {
+	// Generate Request Data
+	requestData, err := json.Marshal(requestFileVersions{path})
+	if err != nil {
+		return nil, fmt.Errorf("request serialization failed: %w", err)
+	}
+
+	// Generate Request Object
+	requestHTTP, err := http.NewRequest("POST", urlFileVersions, bytes.NewReader(requestData))
+	if err != nil {
+		return nil, fmt.Errorf("request generation failed: %w", err)
+	}
+
+	// Set authentication headers from the client
+	client.setHeaders(requestHTTP)
+
+	// Perform the HTTP Request
+	responseHTTP, err := client.c.Do(requestHTTP)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	// Decode the response into a responseListFiles
+	response := new(responseFileVersions)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
+	}
+
+	// Check the status code of response
+	if response.Metadata.StatusCode != 200 {
+		return nil, fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
+	}
+
+	// Returns the file version descriptors from the response
+	return response.Data, nil
+}
+
+// responseMakeDir is the response for the MakeDir API of MOIBit
+type responseMakeDir struct {
+	Metadata responseMetadata `json:"meta"`
+	Data     string           `json:"data"`
+}
+
+// MakeDirectory creates a new directory at the given path which can than be used for storing files.
+func (client *Client) MakeDirectory(path string) error {
+	// Generate Request Object
+	requestHTTP, err := http.NewRequest("GET", urlMakeDir, nil)
+	if err != nil {
+		return fmt.Errorf("request generation failed: %w", err)
+	}
+
+	// Set given path to query parameters
+	query := requestHTTP.URL.Query()
+	query.Add("path", path)
+	requestHTTP.URL.RawQuery = query.Encode()
+
+	// Set authentication headers from the client
+	client.setHeaders(requestHTTP)
+
+	// Perform the HTTP Request
+	responseHTTP, err := client.c.Do(requestHTTP)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+
+	// Decode the response into a responseWriteFiles
+	response := new(responseMakeDir)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
+	}
+
+	// Check the status code of response
+	if response.Metadata.StatusCode != 200 {
+		return fmt.Errorf("non-ok response [%v]: %v | %v", response.Metadata.StatusCode, response.Metadata.Message, response.Data)
+	}
+
+	return nil
 }
