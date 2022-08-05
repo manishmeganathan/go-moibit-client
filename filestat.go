@@ -52,7 +52,11 @@ func (file FileDescriptor) String() string {
 	if file.IsDirectory {
 		return fmt.Sprintf("[Dirc] /%v", file.Directory)
 	} else {
-		return fmt.Sprintf("[File] %v%v", file.Directory, file.Path)
+		if file.Directory == "/" {
+			return fmt.Sprintf("[File] /%v", file.Path)
+		} else {
+			return fmt.Sprintf("[File] %v%v", file.Directory, file.Path)
+		}
 	}
 }
 
