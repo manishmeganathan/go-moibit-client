@@ -20,6 +20,8 @@ const (
 	urlReadFile     = "https://api.moinet.io/moibit/v1/readfile"
 	urlRemoveFile   = "https://api.moinet.io/moibit/v1/remove"
 	urlMakeDir      = "https://api.moinet.io/moibit/v1/makedir"
+	urlAppDetails   = "https://api.moinet.io/moibit/v1/appdetails"
+	urlDevDetails   = "https://api.moinet.io/moibit/v1/devstat"
 )
 
 // ClientOption is a MOIBit client option provided to the Client Constructor

@@ -128,7 +128,7 @@ func (client *Client) FileStatus(path string) (FileDescriptor, error) {
 		return FileDescriptor{}, fmt.Errorf("request failed: %w", err)
 	}
 
-	// Decode the response into a responseListFiles
+	// Decode the response into a responseFileStatus
 	response := new(responseFileStatus)
 	decoder := json.NewDecoder(responseHTTP.Body)
 	if err := decoder.Decode(response); err != nil {
@@ -179,7 +179,7 @@ func (client *Client) FileVersions(path string) ([]FileVersionDescriptor, error)
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	// Decode the response into a responseListFiles
+	// Decode the response into a responseFileVersions
 	response := new(responseFileVersions)
 	decoder := json.NewDecoder(responseHTTP.Body)
 	if err := decoder.Decode(response); err != nil {
@@ -223,7 +223,7 @@ func (client *Client) MakeDirectory(path string) error {
 		return fmt.Errorf("request failed: %w", err)
 	}
 
-	// Decode the response into a responseWriteFiles
+	// Decode the response into a responseMakeDir
 	response := new(responseMakeDir)
 	decoder := json.NewDecoder(responseHTTP.Body)
 	if err := decoder.Decode(response); err != nil {
