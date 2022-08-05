@@ -313,3 +313,46 @@ func PerformRestore() RemoveOption {
 		return nil
 	}
 }
+
+// responseMakeDir is the response for the MakeDir API of MOIBit
+type responseMakeDir struct {
+	Metadata responseMetadata `json:"meta"`
+	Data     string           `json:"data"`
+}
+
+// MakeDirectory creates a new directory at the given path which can than be used for storing files.
+func (client *Client) MakeDirectory(path string) error {
+	// Generate Request Object
+	requestHTTP, err := http.NewRequest("GET", urlMakeDir, nil)
+	if err != nil {
+		return fmt.Errorf("request generation failed: %w", err)
+	}
+
+	// Set given path to query parameters
+	query := requestHTTP.URL.Query()
+	query.Add("path", path)
+	requestHTTP.URL.RawQuery = query.Encode()
+
+	// Set authentication headers from the client
+	client.setHeaders(requestHTTP)
+
+	// Perform the HTTP Request
+	responseHTTP, err := client.c.Do(requestHTTP)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+
+	// Decode the response into a responseMakeDir
+	response := new(responseMakeDir)
+	decoder := json.NewDecoder(responseHTTP.Body)
+	if err := decoder.Decode(response); err != nil {
+		return fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
+	}
+
+	// Check the status code of response
+	if response.Metadata.StatusCode != 200 {
+		return fmt.Errorf("non-ok response [%v]: %v | %v", response.Metadata.StatusCode, response.Metadata.Message, response.Data)
+	}
+
+	return nil
+}
