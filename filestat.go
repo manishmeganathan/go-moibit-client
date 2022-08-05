@@ -12,10 +12,11 @@ type FileVersionDescriptor struct {
 	Active bool `json:"active"`
 	Enable bool `json:"enable"`
 
-	Hash        string `json:"hash"`
-	Version     int    `json:"version"`
-	Replication int    `json:"replication"`
-	FileSize    int    `json:"filesize"`
+	Hash           string `json:"hash"`
+	ProvenanceHash string `json:"provenanceHash"`
+	Version        int    `json:"version"`
+	Replication    int    `json:"replication"`
+	FileSize       int    `json:"filesize"`
 
 	EncryptionKey string `json:"encryptionKey"`
 	LastUpdated   string `json:"lastUpdated"`
@@ -29,6 +30,21 @@ type FileDescriptor struct {
 	IsDirectory bool   `json:"isDir"`
 	Directory   string `json:"directory"`
 	NodeAddress string `json:"nodeAddress"`
+}
+
+// Exists returns whether a file exists or not.
+// Returns true if the file is a directory or has a non nil hash
+func (file FileDescriptor) Exists() bool {
+	if file.IsDirectory {
+		// If file is a directory, return true
+		return true
+	} else if file.Hash != "" {
+		// If file is not directory but hash non-nil hash, return true
+		return true
+	}
+
+	// Return false otherwise
+	return false
 }
 
 // String implements the Stringer interface for FileDescriptor
