@@ -66,11 +66,14 @@ func NewClient(signature, nonce string, opts ...ClientOption) (*Client, error) {
 		}
 	}
 
-	// Authenticate credentials
-	if err := client.Authenticate(); err != nil {
+	// Authenticate credentials and get public key
+	pubkey, err := Authenticate(signature, nonce)
+	if err != nil {
 		return nil, fmt.Errorf("user could not be authenticated: %w", err)
 	}
 
+	// Set the pubkey of the client from the authenticated public key
+	client.pubkey = pubkey
 	return client, nil
 }
 
@@ -79,39 +82,40 @@ func defaultClient(sig, n string) *Client {
 	return &Client{http.Client{}, "", n, sig, "", DefaultNetworkID}
 }
 
-// Authenticate attempts to authenticate the Client credentials with MOIBit.
-// Returns an error if either the authentication routine fails or if the credentials are invalid.
-func (client *Client) Authenticate() error {
+// Authenticate attempts to authenticate a set of credentials with MOIBit.
+// Accepts the nonce and signature of the developer and returns the public or an
+// error if either the authentication routine fails or if the credentials are invalid.
+func Authenticate(signature, nonce string) (string, error) {
 	// Create new POST request for user authentication
 	request, err := http.NewRequest("POST", urlAuthUser, nil)
 	if err != nil {
-		return fmt.Errorf("request generation failed: %w", err)
+		return "", fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set the auth headers (signature and nonce)
-	client.setAuthHeaders(request)
+	request.Header.Set("nonce", nonce)
+	request.Header.Set("signature", signature)
 
 	// Perform the request
-	response, err := client.c.Do(request)
+	client := http.Client{}
+	response, err := client.Do(request)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return "", fmt.Errorf("request failed: %w", err)
 	}
 
 	// Check the status code of response
 	if response.StatusCode != 200 {
-		return fmt.Errorf("user not authenticated: %v", response.StatusCode)
+		return "", fmt.Errorf("user not authenticated: %v", response.StatusCode)
 	}
 
 	// Decode the response into a responseUserAuth
 	auth := new(responseUserAuth)
 	decoder := json.NewDecoder(response.Body)
 	if err := decoder.Decode(auth); err != nil {
-		return fmt.Errorf("response decode failed: %w", err)
+		return "", fmt.Errorf("response decode failed: %w", err)
 	}
 
-	// Set the pubkey of the client from the address in the response
-	client.pubkey = auth.Data.Address
-	return nil
+	return auth.Data.Address, nil
 }
 
 // responseMetadata is a generic response data structure
@@ -134,18 +138,11 @@ type responseUserAuth struct {
 	} `json:"data"`
 }
 
-// setAuthHeaders accepts a HTTP Request and sets the auth headers
-// "nonce" and "signature" for authenticating with MOIBit.
-func (client *Client) setAuthHeaders(request *http.Request) {
-	request.Header.Set("nonce", client.nonce)
-	request.Header.Set("signature", client.signature)
-}
-
 // setHeaders accepts a HTTP Request and sets the headers
 // "developerKey", "networkID" and "appID" from the client.
 func (client *Client) setHeaders(request *http.Request) {
-	client.setAuthHeaders(request)
-
+	request.Header.Set("nonce", client.nonce)
+	request.Header.Set("signature", client.signature)
 	request.Header.Set("developerKey", client.pubkey)
 	request.Header.Set("networkID", client.netID)
 	request.Header.Set("appID", client.appID)
