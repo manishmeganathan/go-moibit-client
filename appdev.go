@@ -39,7 +39,7 @@ func (client *Client) AppDetails() (AppDescriptor, error) {
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("GET", urlAppDetails, nil)
+	requestHTTP, err := http.NewRequest("GET", client.serviceURL("/appdetails"), nil)
 	if err != nil {
 		return AppDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}
@@ -128,7 +128,7 @@ type responseDevDetails struct {
 // DevDetails returns the details of developer user the client is configured for as a DevDescriptor object
 func (client *Client) DevDetails() (DevDescriptor, error) {
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("GET", urlDevDetails, nil)
+	requestHTTP, err := http.NewRequest("GET", client.serviceURL("/devstat"), nil)
 	if err != nil {
 		return DevDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}
