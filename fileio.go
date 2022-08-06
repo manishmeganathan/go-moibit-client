@@ -24,7 +24,7 @@ func (client *Client) ReadFile(path string, version int) ([]byte, error) {
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("POST", urlReadFile, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", client.serviceURL("/readfile"), bytes.NewReader(requestData))
 	if err != nil {
 		return nil, fmt.Errorf("request generation failed: %w", err)
 	}
@@ -98,7 +98,7 @@ func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) (
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("POST", urlWriteFile, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", client.serviceURL("/writetexttofile"), bytes.NewReader(requestData))
 	if err != nil {
 		return FileDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}
@@ -268,7 +268,7 @@ func (client *Client) RemoveFile(path string, version int, opts ...RemoveOption)
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("POST", urlRemoveFile, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", client.serviceURL("/remove"), bytes.NewReader(requestData))
 	if err != nil {
 		return fmt.Errorf("request generation failed: %w", err)
 	}
@@ -327,7 +327,7 @@ type responseMakeDir struct {
 // MakeDirectory creates a new directory at the given path which can than be used for storing files.
 func (client *Client) MakeDirectory(path string) error {
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("GET", urlMakeDir, nil)
+	requestHTTP, err := http.NewRequest("GET", client.serviceURL("/makedir"), nil)
 	if err != nil {
 		return fmt.Errorf("request generation failed: %w", err)
 	}

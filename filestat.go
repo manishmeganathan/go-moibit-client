@@ -82,7 +82,7 @@ func (client *Client) ListFiles(path string) ([]FileDescriptor, error) {
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("POST", urlListFiles, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", client.serviceURL("/listfiles"), bytes.NewReader(requestData))
 	if err != nil {
 		return nil, fmt.Errorf("request generation failed: %w", err)
 	}
@@ -134,7 +134,7 @@ func (client *Client) FileStatus(path string) (FileDescriptor, error) {
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("POST", urlFileStatus, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", client.serviceURL("/filestatus"), bytes.NewReader(requestData))
 	if err != nil {
 		return FileDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}
@@ -185,7 +185,7 @@ func (client *Client) FileVersions(path string) ([]FileVersionDescriptor, error)
 	}
 
 	// Generate Request Object
-	requestHTTP, err := http.NewRequest("POST", urlFileVersions, bytes.NewReader(requestData))
+	requestHTTP, err := http.NewRequest("POST", client.serviceURL("/versions"), bytes.NewReader(requestData))
 	if err != nil {
 		return nil, fmt.Errorf("request generation failed: %w", err)
 	}

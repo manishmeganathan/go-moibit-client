@@ -6,22 +6,14 @@ import (
 	"net/http"
 )
 
-// DefaultNetworkID represents the network ID of the default MOIBit Network.
-// Can be overridden using the NetworkID() option while constructing the client
-const DefaultNetworkID = "12D3KooWSMAGyrB9TG45AAWaQNJmMdfJpnLQ5e1XM21hkm3FokHk"
-
-// URLs for all MOIBit API Endpoints
 const (
-	urlAuthUser     = "https://api.moinet.io/moibit/v1/user/auth"
-	urlListFiles    = "https://api.moinet.io/moibit/v1/listfiles"
-	urlFileStatus   = "https://api.moinet.io/moibit/v1/filestatus"
-	urlFileVersions = "https://api.moinet.io/moibit/v1/versions"
-	urlWriteFile    = "https://api.moinet.io/moibit/v1/writetexttofile"
-	urlReadFile     = "https://api.moinet.io/moibit/v1/readfile"
-	urlRemoveFile   = "https://api.moinet.io/moibit/v1/remove"
-	urlMakeDir      = "https://api.moinet.io/moibit/v1/makedir"
-	urlAppDetails   = "https://api.moinet.io/moibit/v1/appdetails"
-	urlDevDetails   = "https://api.moinet.io/moibit/v1/devstat"
+	// DefaultNetworkID represents the network ID of the default MOIBit Network.
+	// Can be overridden using the NetworkID() option while constructing the client
+	DefaultNetworkID = "12D3KooWSMAGyrB9TG45AAWaQNJmMdfJpnLQ5e1XM21hkm3FokHk"
+
+	// DefaultBaseURL represents the default base URL for the MOIBit Client.
+	// It is the primary production service endpoint. API endpoints are built on this base URL
+	DefaultBaseURL = "https://api.moinet.io/moibit/v1"
 )
 
 // ClientOption is a MOIBit client option provided to the Client Constructor
@@ -43,9 +35,19 @@ func NetworkID(net string) ClientOption {
 	}
 }
 
+// BaseURL returns a ClientOption that can be used to set a Base URL for a Client
+// The Base URL can be used to have the Client dial a local development instance or custom network.
+func BaseURL(url string) ClientOption {
+	return func(client *Client) error {
+		client.url = url
+		return nil
+	}
+}
+
 // Client represents a MOIBit API Client
 type Client struct {
-	c http.Client
+	c   http.Client
+	url string
 
 	pubkey    string
 	nonce     string
@@ -56,8 +58,8 @@ type Client struct {
 }
 
 // NewClient creates a new MOIBit API Client for the given signature and nonce
-// Accepts a variadic number of ClientOption arguments to set the App or Network ID.
-// Uses the DefaultNetworkID and no App ID, by default.
+// Accepts a variadic number of ClientOption arguments to set the App ID, Network ID or Base URL
+// Uses the DefaultNetworkID, DefaultBaseURL and no App ID, by default.
 func NewClient(signature, nonce string, opts ...ClientOption) (*Client, error) {
 	// Generate the default client with the nonce and signature
 	client := defaultClient(signature, nonce)
@@ -69,7 +71,7 @@ func NewClient(signature, nonce string, opts ...ClientOption) (*Client, error) {
 	}
 
 	// Authenticate credentials and get public key
-	pubkey, err := Authenticate(signature, nonce)
+	pubkey, err := Authenticate(client)
 	if err != nil {
 		return nil, fmt.Errorf("user could not be authenticated: %w", err)
 	}
@@ -81,26 +83,35 @@ func NewClient(signature, nonce string, opts ...ClientOption) (*Client, error) {
 
 // defaultClient generates a new Client for a given public key, nonce and signature.
 func defaultClient(sig, n string) *Client {
-	return &Client{http.Client{}, "", n, sig, "", DefaultNetworkID}
+	return &Client{
+		http.Client{}, DefaultBaseURL,
+		"", n, sig,
+		"", DefaultNetworkID,
+	}
+}
+
+// serviceURL generates a URL with the given endpoint concatenated with the base URL of the Client.
+// Note: Endpoint should start with "/" as this as a pure concat operation on the
+func (client *Client) serviceURL(endpoint string) string {
+	return client.url + endpoint
 }
 
 // Authenticate attempts to authenticate a set of credentials with MOIBit.
 // Accepts the nonce and signature of the developer and returns the public or an
 // error if either the authentication routine fails or if the credentials are invalid.
-func Authenticate(signature, nonce string) (string, error) {
+func Authenticate(client *Client) (string, error) {
 	// Create new POST request for user authentication
-	request, err := http.NewRequest("POST", urlAuthUser, nil)
+	request, err := http.NewRequest("POST", client.serviceURL("/user/auth"), nil)
 	if err != nil {
 		return "", fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set the auth headers (signature and nonce)
-	request.Header.Set("nonce", nonce)
-	request.Header.Set("signature", signature)
+	request.Header.Set("nonce", client.nonce)
+	request.Header.Set("signature", client.signature)
 
 	// Perform the request
-	client := http.Client{}
-	response, err := client.Do(request)
+	response, err := client.c.Do(request)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
