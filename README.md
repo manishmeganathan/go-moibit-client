@@ -1,11 +1,11 @@
-# go-moibit-sdk
-Golang SDK for interacting with MOIBit's Decentralized Storage API's
+# go-moibit-client
+Golang Client Library for interacting with MOIBit's Decentralized Storage API's
 
 ## Types
 - <a  href="#Client"><code>Client</code></a>
-- <a  href="#FileDescriptor"><code>File-Descriptor</code></a>
-- <a  href="#AppDescriptor"><code>App-Descriptor</code></a>
-- <a  href="#DevDescriptor"><code>Dev-Descriptor</code></a>
+- <a  href="#FileDescriptor"><code>FileDescriptor</code></a>
+- <a  href="#AppDescriptor"><code>AppDescriptor</code></a>
+- <a  href="#DevDescriptor"><code>DevDescriptor</code></a>
 
 
 ## Methods for File/Directory stats
