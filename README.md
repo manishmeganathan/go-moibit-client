@@ -161,12 +161,12 @@ func (client *Client) ReadFile(path string, version int) ([]byte, error)
 ```
 
 <a name="WriteFile"></a>
-### WriteFile(data []byte, name string, opts ...WriteOption) ([]FileDescriptor, error)
+### WriteFile(data []byte, name string, opts ...WriteOption) (FileDescriptor, error)
 WriteFile writes a given file to MOIBit. Accepts the file data as raw bytes and the file name.
 It also accepts a variadic number of WriteOption to modify the write request.
-Returns a []FileDescriptor (and error) containing the status of the file after successful write.
+Returns a FileDescriptor (and error) containing the status of the file after successful write.
 ```go
-func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) ([]FileDescriptor, error) 
+func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) (FileDescriptor, error) 
 ```
 
 

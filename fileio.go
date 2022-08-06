@@ -76,31 +76,31 @@ func defaultWriteFileRequest(data []byte, name string) *requestWriteFile {
 // responseWriteFile is the response for the WriteFile API of MOIBit
 type responseWriteFile struct {
 	Metadata responseMetadata `json:"meta"`
-	Data     []FileDescriptor `json:"data"`
+	Data     FileDescriptor   `json:"data"`
 }
 
 // WriteFile writes a given file to MOIBit. Accepts the file data as raw bytes and the file name.
 // It also accepts a variadic number of WriteOption to modify the write request.
-// Returns a []FileDescriptor (and error) containing the status of the file after successful write.
-func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) ([]FileDescriptor, error) {
+// Returns a FileDescriptor (and error) containing the status of the file after successful write.
+func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) (FileDescriptor, error) {
 	// Generate Request Data
 	request := defaultWriteFileRequest(data, name)
 	for _, opt := range opts {
 		if err := opt(request); err != nil {
-			return nil, fmt.Errorf("request creation failed while applying options: %w", err)
+			return FileDescriptor{}, fmt.Errorf("request creation failed while applying options: %w", err)
 		}
 	}
 
 	// Serialize Request Data
 	requestData, err := json.Marshal(request)
 	if err != nil {
-		return nil, fmt.Errorf("request serialization failed: %w", err)
+		return FileDescriptor{}, fmt.Errorf("request serialization failed: %w", err)
 	}
 
 	// Generate Request Object
 	requestHTTP, err := http.NewRequest("POST", urlWriteFile, bytes.NewReader(requestData))
 	if err != nil {
-		return nil, fmt.Errorf("request generation failed: %w", err)
+		return FileDescriptor{}, fmt.Errorf("request generation failed: %w", err)
 	}
 
 	// Set authentication headers from the client
@@ -109,19 +109,19 @@ func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) (
 	// Perform the HTTP Request
 	responseHTTP, err := client.c.Do(requestHTTP)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return FileDescriptor{}, fmt.Errorf("request failed: %w", err)
 	}
 
 	// Decode the response into a responseWriteFiles
 	response := new(responseWriteFile)
 	decoder := json.NewDecoder(responseHTTP.Body)
 	if err := decoder.Decode(response); err != nil {
-		return nil, fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
+		return FileDescriptor{}, fmt.Errorf("response decode failed [HTTP %v]: %w", responseHTTP.StatusCode, err)
 	}
 
 	// Check the status code of response
 	if response.Metadata.StatusCode != 200 {
-		return nil, fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
+		return FileDescriptor{}, fmt.Errorf("non-ok response [%v]: %v", response.Metadata.StatusCode, response.Metadata.Message)
 	}
 
 	// Returns the file descriptors from the response
@@ -160,8 +160,12 @@ func (resp *responseWriteFile) UnmarshalJSON(data []byte) error {
 		fileDescriptors = append(fileDescriptors, fd...)
 	}
 
+	if len(fileDescriptors) > 1 {
+		return fmt.Errorf("failed to decode 'data' into FileDescriptor: contains multiple descriptors")
+	}
+
 	// Update the response fields
-	resp.Metadata, resp.Data = ir.Meta, fileDescriptors
+	resp.Metadata, resp.Data = ir.Meta, fileDescriptors[0]
 	return nil
 }
 
