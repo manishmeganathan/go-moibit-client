@@ -17,11 +17,12 @@ func Root() FilePath {
 }
 
 // NewFilePath generates a new FilePath from a given variadic set of path elements.
-// Each path element represents one level on the file system as a directory
-// and can contain any character except for periods (.) and slashes (/).
+// Each path element is a string that may contain multiple filesystem path levels.
+// If a path element contains a slash (/), it will be split and cleaned.
 //
 // The last element may contain a single period to represent a file with a name and an extension like
-// "file.json" or "hello.txt". If the last element has no period, the path is constructed for a directory
+// "file.json" or "hello.txt". If the last element has no period, the path is assumed to be a directory.
+// If an element apart from the last element contains a period, function returns an error.
 //
 // An error is returned if any path element is invalid by not satisfying the above conditions.
 // If no elements are given, the returned FilePath references the root directory.
@@ -31,55 +32,83 @@ func NewFilePath(elements ...string) (FilePath, error) {
 
 	// Iterate through the elements
 	for idx, element := range elements {
-		// If the element contains slash (/), throw an error
-		if strings.Contains(element, "/") {
-			return Root(), fmt.Errorf("failed to construct filepath: element '%v' contains slash", idx)
-		}
-
-		// If the element contains period (.)
-		if strings.Contains(element, ".") {
-			// Check if element is the last one
-			if idx == len(element)-1 {
-				// Split the element along the period and check if it contains only 2 split elements
+		// If the element is last one -> allow for possibility of a file extension
+		if idx == len(elements)-1 {
+			// If a period exists in the element, then a file extension might exist
+			if strings.Contains(element, ".") {
+				// Split the element along the period, but if there is more than one period in
+				// the element, then it is not possible to determine the file extension correctly
 				split := strings.Split(element, ".")
 				if len(split) != 2 {
-					return Root(), fmt.Errorf("failed to construct filepath: last element contains multiple periods")
+					return FilePath{}, fmt.Errorf("failed to construct filepath: multiple periods in final element")
 				}
 
-				// Append the first split element into the fp elements (file name)
-				fp.elements = append(fp.elements, split[0])
-				// Set the file second split element as file extension
-				fp.extension = split[1]
+				// Prune slashes from the split elements (filename and extension)
+				prunedFilename := cleanPath(split[0])
+				prunedExtension := cleanPath(split[1])
+
+				// If number of slash-pruned extension elements is more than 1, it means that there
+				// is a slash after the period (in the extension) -> malformed file extension
+				if len(prunedExtension) != 1 {
+					return FilePath{}, fmt.Errorf("failed to construct filepath: slash detected after period or missing extension")
+				}
+
+				// Set filepath extension and append pruned elements
+				fp.extension = prunedExtension[0]
+				fp.elements = append(fp.elements, prunedFilename...)
 				continue
 			}
-
-			// Throw error for non-final element with period (.)
-			return Root(), fmt.Errorf("failed to construct filepath: non-final element '%v' contains period", idx)
 		}
 
-		// Append the element into the fp elements
-		fp.elements = append(fp.elements, element)
+		// Clean slashes from the element and check if any
+		// of the sub-elements contains periods -> throw error,
+		// otherwise, append it to the filepath elements
+		pruned := cleanPath(element)
+		for _, p := range pruned {
+			if strings.Contains(p, ".") {
+				return FilePath{}, fmt.Errorf("failed to construct filepath: non-final element '%v' contains period", idx)
+			}
+
+			fp.elements = append(fp.elements, p)
+		}
 	}
 
 	return fp, nil
 }
 
-func NewFilePathFromString(path string) (FilePath, error) {
-	return FilePath{}, nil
-}
-
+// Path returns a string representing the full path of represented by the FilePath
 func (fp FilePath) Path() string {
-	return ""
+	// Initialize a string builder
+	var s strings.Builder
+
+	// Add a slash and then all the filepath elements separated by a /
+	s.WriteString(fmt.Sprintf("/%v", strings.Join(fp.elements, "/")))
+	if fp.IsFile() {
+		// If the filepath points to a file, add its extension to the path
+		s.WriteString(fmt.Sprintf(".%v", fp.extension))
+	}
+
+	// Return the string from the builder
+	return s.String()
 }
 
+// String implements the Stringer interface for FilePath
+// Returns the path representation of the FilePath.
+func (fp FilePath) String() string {
+	return fp.Path()
+}
+
+// IsRoot returns whether the FilePath points to the "/" directory
 func (fp FilePath) IsRoot() bool {
 	return fp.IsDirectory() && len(fp.elements) == 0
 }
 
+// IsDirectory returns whether the FilePath points to a directory
 func (fp FilePath) IsDirectory() bool {
 	return fp.extension == ""
 }
 
+// IsFile returns whether the FilePath points to a file
 func (fp FilePath) IsFile() bool {
 	return fp.extension != ""
 }
@@ -90,4 +119,35 @@ func (fp *FilePath) Grow(elements ...string) error {
 
 func (fp FilePath) Parent() FilePath {
 	return FilePath{}
+}
+
+// cleanPath is utility function that accepts a string path and returns
+// a slice of strings which are free of slashes. Empty path elements will
+// be discarded and an already clean path will be returned within the slice
+func cleanPath(path string) []string {
+	// If the path contains slashes, they need to be pruned
+	if strings.Contains(path, "/") {
+		// Initialize a slice of strings
+		elements := make([]string, 0)
+
+		// Split along the slashes and iterate through the split elements
+		split := strings.Split(path, "/")
+		for _, splitElement := range split {
+			// Clean the split element and append them to elements
+			pruned := cleanPath(splitElement)
+			elements = append(elements, pruned...)
+		}
+
+		// Return the collected elements
+		return elements
+
+	} else {
+		// If the path is an empty string, return an empty slice
+		if path == "" {
+			return nil
+		}
+
+		// Wrap path in a slice and return -> needs no cleaning
+		return []string{path}
+	}
 }
