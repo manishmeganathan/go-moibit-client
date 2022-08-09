@@ -16,9 +16,14 @@ type requestReadFile struct {
 
 // ReadFile reads a file from MOIBit at the given path for the given version.
 // Returns the []byte data of the file and an error.
-func (client *Client) ReadFile(path string, version int) ([]byte, error) {
+func (client *Client) ReadFile(path FilePath, version int) ([]byte, error) {
+	// Error if path is not a file path
+	if !path.IsFile() {
+		return nil, fmt.Errorf("cannot read file from a directory path: %v", path.Path())
+	}
+
 	// Generate Request Data
-	requestData, err := json.Marshal(requestReadFile{path, version})
+	requestData, err := json.Marshal(requestReadFile{path.Path(), version})
 	if err != nil {
 		return nil, fmt.Errorf("request serialization failed: %w", err)
 	}
@@ -82,9 +87,14 @@ type responseWriteFile struct {
 // WriteFile writes a given file to MOIBit. Accepts the file data as raw bytes and the file name.
 // It also accepts a variadic number of WriteOption to modify the write request.
 // Returns a FileDescriptor (and error) containing the status of the file after successful write.
-func (client *Client) WriteFile(data []byte, name string, opts ...WriteOption) (FileDescriptor, error) {
+func (client *Client) WriteFile(data []byte, path FilePath, opts ...WriteOption) (FileDescriptor, error) {
+	// Error if the path is not a file path
+	if !path.IsFile() {
+		return FileDescriptor{}, fmt.Errorf("cannot write to filepath that is not path to a file: %v", path.Path())
+	}
+
 	// Generate Request Data
-	request := defaultWriteFileRequest(data, name)
+	request := defaultWriteFileRequest(data, path.Path())
 	for _, opt := range opts {
 		if err := opt(request); err != nil {
 			return FileDescriptor{}, fmt.Errorf("request creation failed while applying options: %w", err)
@@ -252,9 +262,9 @@ type responseRemoveFile struct {
 // It also accepts a variadic number of RemoveOption to modify the remove request.
 // 		- To remove directories, use the path to the directory and pass the RemoveDirectory option.
 // 		- To restore files, pass the file path and version to restore with the PerformRestore option.
-func (client *Client) RemoveFile(path string, version int, opts ...RemoveOption) error {
+func (client *Client) RemoveFile(path FilePath, version int, opts ...RemoveOption) error {
 	// Generate Request Data
-	request := defaultRemoveFileRequest(path, version)
+	request := defaultRemoveFileRequest(path.Path(), version)
 	for _, opt := range opts {
 		if err := opt(request); err != nil {
 			return fmt.Errorf("request creation failed while applying options: %w", err)
@@ -325,7 +335,12 @@ type responseMakeDir struct {
 }
 
 // MakeDirectory creates a new directory at the given path which can than be used for storing files.
-func (client *Client) MakeDirectory(path string) error {
+func (client *Client) MakeDirectory(path FilePath) error {
+	// Error if path is not to a directory
+	if !path.IsDirectory() {
+		return fmt.Errorf("cannot create directory with path that is not directory path: %v", path.Path())
+	}
+
 	// Generate Request Object
 	requestHTTP, err := http.NewRequest("GET", client.serviceURL("/makedir"), nil)
 	if err != nil {
