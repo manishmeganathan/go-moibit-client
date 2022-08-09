@@ -349,7 +349,7 @@ func (client *Client) MakeDirectory(path FilePath) error {
 
 	// Set given path to query parameters
 	query := requestHTTP.URL.Query()
-	query.Add("path", path)
+	query.Add("path", path.Path())
 	requestHTTP.URL.RawQuery = query.Encode()
 
 	// Set authentication headers from the client
