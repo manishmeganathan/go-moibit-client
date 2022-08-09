@@ -113,12 +113,37 @@ func (fp FilePath) IsFile() bool {
 	return fp.extension != ""
 }
 
+// Grow accepts a variadic set of path elements to grow the FilePath with.
+// Returns an error if the elements are invalid or if the FilePath points to a file.
 func (fp *FilePath) Grow(elements ...string) error {
+	// FilePath cannot be grown if it is a file
+	if fp.IsFile() {
+		return fmt.Errorf("cannot grow file path: already pointing to a file")
+	}
+
+	// Append the given elements into the filepath elements
+	elems := append(fp.elements, elements...)
+	// Create a new FilePath from the full set of elements
+	newfp, err := NewFilePath(elems...)
+	if err != nil {
+		return fmt.Errorf("cannot grow file path: bad elements: %w", err)
+	}
+
+	// Set the new FilePath to the method caller
+	*fp = newfp
 	return nil
 }
 
+// Parent returns a FilePath that points to the parent directory of the FilePath.
+// If the FilePath is points to the root, the returned FilePath also points to the root.
 func (fp FilePath) Parent() FilePath {
-	return FilePath{}
+	// If the filepath points to a directory and contains less than 1 path element -> Return Root()
+	if fp.IsDirectory() && len(fp.elements) <= 1 {
+		return Root()
+	}
+
+	// Return a new filepath with one element popped from the end, with no extension
+	return FilePath{fp.elements[:len(fp.elements)-1], ""}
 }
 
 // cleanPath is utility function that accepts a string path and returns
