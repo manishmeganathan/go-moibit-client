@@ -71,12 +71,17 @@ type responseListFiles struct {
 	Data     []FileDescriptor `json:"data"`
 }
 
-// ListFiles lists the files for a specified path.
-// The files are returned as a slice of FileDescriptor objects.
-// An error is returned if the API fails or the client cannot authenticate with MOIBit.
-func (client *Client) ListFiles(path string) ([]FileDescriptor, error) {
+// ListFiles lists the files for a specified directory path. (errors if path is not a directory path)
+// The files are returned as a slice of FileDescriptor objects. Returns an error if the API fails or
+// the client cannot authenticate with MOIBit.
+func (client *Client) ListFiles(path FilePath) ([]FileDescriptor, error) {
+	// Error if path does not point to directory
+	if !path.IsDirectory() {
+		return nil, fmt.Errorf("cannot list files for non-directory path: %v", path.Path())
+	}
+
 	// Generate Request Data
-	requestData, err := json.Marshal(requestListFiles{path})
+	requestData, err := json.Marshal(requestListFiles{path.Path()})
 	if err != nil {
 		return nil, fmt.Errorf("request serialization failed: %w", err)
 	}
@@ -123,12 +128,17 @@ type responseFileStatus struct {
 	Data     FileDescriptor   `json:"data"`
 }
 
-// FileStatus returns the status of a file at a specified path.
+// FileStatus returns the status of a file at a specified file path. (errors if path is for directory)
 // The returned FileStatus is empty if the file does not exist, which can be checked with Exists().
 // An error is returned if the API fails or the client cannot authenticate with MOIBit.
-func (client *Client) FileStatus(path string) (FileDescriptor, error) {
+func (client *Client) FileStatus(path FilePath) (FileDescriptor, error) {
+	// Error if path is a directory path
+	if path.IsDirectory() {
+		return FileDescriptor{}, fmt.Errorf("cannot get file status for directory path: %v", path.Path())
+	}
+
 	// Generate Request Data
-	requestData, err := json.Marshal(requestFileStatus{path})
+	requestData, err := json.Marshal(requestFileStatus{path.Path()})
 	if err != nil {
 		return FileDescriptor{}, fmt.Errorf("request serialization failed: %w", err)
 	}
@@ -175,11 +185,16 @@ type responseFileVersions struct {
 	Data     []FileVersionDescriptor `json:"data"`
 }
 
-// FileVersions returns the version information of the file at the given path.
+// FileVersions returns the version information of the file at the given file path. (errors if path is for directory)
 // Returns a slice of FileVersionDescriptor objects, one for each version.
-func (client *Client) FileVersions(path string) ([]FileVersionDescriptor, error) {
+func (client *Client) FileVersions(path FilePath) ([]FileVersionDescriptor, error) {
+	// Error is path is a directory path
+	if path.IsDirectory() {
+		return nil, fmt.Errorf("cannot get file versions for directory path: %v", path.Path())
+	}
+
 	// Generate Request Data
-	requestData, err := json.Marshal(requestFileVersions{path})
+	requestData, err := json.Marshal(requestFileVersions{path.Path()})
 	if err != nil {
 		return nil, fmt.Errorf("request serialization failed: %w", err)
 	}

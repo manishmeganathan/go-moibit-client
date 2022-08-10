@@ -28,3 +28,23 @@ const (
 	// on the file when storing on MOIBit.
 	MESEncryption
 )
+
+// String implements the Stringer interface for EncryptionType
+func (enc EncryptionType) String() string {
+	switch enc {
+	case NoEncryption:
+		return "No Encryption"
+	case DefaultNetworkEncryption:
+		return "Default Network Encryption"
+	case DeveloperKeyEncryption:
+		return "Developer Key Encryption"
+	case EndUserKeyEncryption:
+		return "End User Encryption"
+	case CustomKeyEncryption:
+		return "Custom Key Encryption"
+	case MESEncryption:
+		return "MES Encryption"
+	default:
+		return "Unknown Encryption"
+	}
+}
